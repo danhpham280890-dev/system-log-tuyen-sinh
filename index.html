@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SYSTEM_LOG: Đánh Giá Năng Lực</title>
+    <style>
+        /* ==================== SYSTEM_LOG THEME ==================== */
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #0f172a; color: #f8fafc; overflow-x: hidden; }
+        
+        /* BẢNG ĐIỀU KHIỂN CHÍNH - BUNG FULL KÍCH THƯỚC */
+        .header { text-align: center; padding: 40px; background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); border-bottom: 2px solid #38bdf8; box-shadow: 0 4px 20px rgba(56,189,248,0.2); }
+        .header h1 { color: #38bdf8; font-size: 55px; letter-spacing: 5px; text-transform: uppercase; margin-bottom: 10px; }
+        .header p { color: #94a3b8; font-size: 22px; font-weight: bold; }
+        
+        .progress-container { display: flex; justify-content: center; align-items: center; gap: 25px; margin: 30px 0; }
+        #prog-text { font-size: 24px; font-weight: bold; color: #38bdf8; }
+        .progress-bg { width: 600px; height: 22px; background: #334155; border-radius: 11px; overflow: hidden; }
+        .progress-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #38bdf8, #4ade80); transition: width 0.4s ease; }
+        .btn-finish { background: #4ade80; color: #0f172a; border: none; padding: 15px 35px; border-radius: 30px; font-weight: bold; cursor: pointer; display: none; font-size: 22px; }
+        
+        /* LƯỚI TRẠM KHÁM PHÁ - BUNG FULL KÍCH THƯỚC */
+        .grid-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 40px; padding: 50px 20px; max-width: 1600px; margin: 0 auto; }
+        .station-card { background: #1e293b; border: 2px solid #334155; border-radius: 20px; width: 280px; padding: 45px 25px; text-align: center; cursor: pointer; transition: all 0.3s; position: relative; }
+        .station-card:hover { transform: translateY(-8px); border-color: #38bdf8; box-shadow: 0 15px 30px rgba(56,189,248,0.3); }
+        .station-card.completed { border-color: #4ade80; background: rgba(74,222,128,0.1); }
+        .station-icon { font-size: 90px; margin-bottom: 25px; }
+        .station-title { font-size: 24px; font-weight: bold; color: #e2e8f0; line-height: 1.4; }
+        .station-domain { font-size: 16px; color: #94a3b8; margin-top: 15px; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* MODALS (Cửa sổ nổi) - PHÓNG TO */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15,23,42,0.95); display: none; justify-content: center; align-items: center; z-index: 100; backdrop-filter: blur(8px); }
+        .modal-box { background: #1e293b; border: 2px solid #38bdf8; padding: 40px 50px; border-radius: 20px; width: 90%; max-width: 1000px; box-shadow: 0 15px 40px rgba(0,0,0,0.8); }
+        .modal-title { font-size: 32px; color: #f59e0b; margin-bottom: 25px; font-weight: bold; border-bottom: 2px dashed #475569; padding-bottom: 15px; text-align: center;}
+        .question-text { font-size: 22px; line-height: 1.8; color: #e2e8f0; margin-bottom: 30px; }
+        
+        /* CÁC THÀNH PHẦN TƯƠNG TÁC - PHÓNG TO */
+        input[type="text"], input[type="number"], select { width: 100%; padding: 18px; border-radius: 12px; border: 2px solid #475569; background: #0f172a; color: white; font-size: 22px; margin-bottom: 20px; font-weight: bold; }
+        select { cursor: pointer; }
+        .btn-submit { background: #38bdf8; color: #0f172a; border: none; padding: 18px 30px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; font-size: 22px; transition: 0.2s;}
+        .btn-submit:hover { background: #0ea5e9; }
+        .btn-close { background: #475569; margin-top: 15px; }
+        .feedback { margin-top: 20px; font-weight: bold; text-align: center; font-size: 22px; }
+
+        .dropdown-group { display: flex; align-items: center; justify-content: space-between; background: #0f172a; padding: 15px 20px; margin-bottom: 15px; border-radius: 12px; border: 1px solid #334155;}
+        .dropdown-group span { font-size: 20px; flex: 1; }
+        .dropdown-group select { width: 250px; margin-bottom: 0; font-size: 18px; padding: 12px; }
+
+        /* Nút cho câu Không gian & Thẩm mỹ */
+        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .btn-choice { background: #334155; color: white; padding: 20px; border: 2px solid #475569; border-radius: 12px; cursor: pointer; font-size: 20px; font-weight: bold; transition: 0.2s;}
+        .btn-choice:hover { border-color: #38bdf8; }
+        .btn-color-red { background: #ef4444; } .btn-color-green { background: #22c55e; } .btn-color-purple { background: #a855f7; }
+
+        /* ROBOT MINI-GAME */
+        .game-board { display: grid; grid-template-columns: repeat(4, 60px); grid-template-rows: repeat(4, 60px); gap: 5px; justify-content: center; margin-bottom: 15px; }
+        .cell { background: #334155; border-radius: 8px; display: flex; justify-content: center; align-items: center; font-size: 30px; }
+        .controls { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; }
+        .btn-dir { background: #38bdf8; border: none; width: 50px; height: 50px; border-radius: 8px; font-size: 24px; cursor: pointer; }
+        
+        /* KẾT QUẢ */
+        .result-box { background: #1e1b4b; padding: 20px; border-radius: 12px; border: 1px solid #4338ca; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+    <!-- MÀN HÌNH CHỜ (NHẬP TÊN) -->
+    <div class="modal-overlay" id="welcome-modal" style="display: flex;">
+        <div class="modal-box" style="text-align: center; max-width: 900px; padding: 60px;">
+            <h2 style="color: #38bdf8; font-size: 50px; margin-bottom: 20px; text-transform: uppercase;">🚀 SYSTEM_LOG INIT</h2>
+            <p style="color: #94a3b8; margin-bottom: 40px; font-size: 24px; font-weight: bold;">HỆ THỐNG ĐÁNH GIÁ NĂNG LỰC - THCS NGUYỄN VĂN BÉ</p>
+            <input type="text" id="hs-name" placeholder="Nhập Họ và Tên của em..." style="font-size: 24px; padding: 20px;">
+            <input type="text" id="hs-school" placeholder="Nhập tên Trường Tiểu học cũ..." style="font-size: 24px; padding: 20px;">
+            <button class="btn-submit" onclick="initApp()" style="font-size: 26px; padding: 20px; margin-top: 10px;">BẮT ĐẦU QUÉT TƯ DUY</button>
+        </div>
+    </div>
+
+    <!-- HEADER & TIẾN ĐỘ -->
+    <div class="header">
+        <h1>SYSTEM_LOG</h1>
+        <p id="student-info">Mật vụ: CHƯA XÁC ĐỊNH</p>
+        <div class="progress-container">
+            <span style="font-weight:bold; color:#38bdf8" id="prog-text">0/10 Trạm</span>
+            <div class="progress-bg"><div class="progress-fill" id="prog-bar"></div></div>
+            <button class="btn-finish" id="btn-finish" onclick="showFinalResult()">PHÂN TÍCH DỮ LIỆU</button>
+        </div>
+    </div>
+
+    <!-- KHU VỰC 10 TRẠM -->
+    <div class="grid-container" id="station-grid">
+        <!-- Render bằng JS -->
+    </div>
+
+    <!-- KHUNG HIỂN THỊ CÂU HỎI -->
+    <div class="modal-overlay" id="quiz-modal">
+        <div class="modal-box">
+            <div class="modal-title" id="q-title">Tên thử thách</div>
+            <div class="question-text" id="q-text">Nội dung câu hỏi...</div>
+            <div id="q-interaction-area">
+                <!-- Vùng tương tác động (Input, Dropdown, Game) -->
+            </div>
+            <div class="feedback" id="q-feedback"></div>
+            <button class="btn-submit btn-close" onclick="closeModal('quiz-modal')">Đóng / Quay lại Bản đồ</button>
+        </div>
+    </div>
+
+    <!-- KHUNG KẾT QUẢ CUỐI CÙNG -->
+    <div class="modal-overlay" id="result-modal">
+        <div class="modal-box" style="max-width: 1000px; border-color: #4ade80; padding: 50px;">
+            <h2 style="color: #4ade80; text-align: center; font-size: 42px; margin-bottom: 15px;">📊 BÁO CÁO THIÊN HƯỚNG TƯ DUY</h2>
+            <p style="text-align:center; color: #94a3b8; margin-bottom: 30px; font-size: 20px;">Dữ liệu đã được mã hóa và đánh giá khách quan.</p>
+            
+            <div style="background: #0f172a; padding: 30px; border-radius: 15px; border: 1px solid #334155; margin-bottom: 25px;">
+                <p style="color: #38bdf8; font-weight: bold; margin-bottom: 20px; font-size: 22px;">[+] QUÉT 5 MẢNG TƯ DUY CỐT LÕI:</p>
+                <div style="line-height: 2.2; font-size: 24px;" id="result-scores">
+                    <!-- JS đổ điểm vào đây -->
+                </div>
+            </div>
+
+            <div class="result-box" style="padding: 35px; border-radius: 15px;">
+                <p style="color: #fbbf24; font-weight: bold; font-size: 20px; margin-bottom: 15px;">[+] HỆ THỐNG KHUYẾN NGHỊ LỘ TRÌNH:</p>
+                <h3 id="res-class" style="color: #f59e0b; margin: 15px 0 20px 0; font-size: 34px;">Đang tính toán...</h3>
+                <p id="res-desc" style="color: #cbd5e1; font-size: 24px; line-height: 1.7; text-align: justify;"></p>
+            </div>
+            
+            <p style="text-align: center; color: #64748b; font-size: 18px; margin-top: 30px; font-style: italic;">*Phụ huynh chụp lại màn hình này để đối chiếu tư vấn ghi danh lớp học.</p>
+            <button class="btn-submit btn-close" onclick="closeModal('result-modal')" style="font-size: 24px; padding: 20px;">Đóng</button>
+        </div>
+    </div>
+
+    <script>
+        // KHO DỮ LIỆU 10 THỬ THÁCH (0 Asset)
+        const database = [
+            { id: 1, domain: "Số học & Logic", domainId: "logic", icon: "🧮", title: "Mật mã chuỗi số", type: "input", 
+              text: "Chiếc hộp mật mã chứa phần quà IT có quy luật dãy số: <br><br><b>2 ➔ 4 ➔ 8 ➔ 16 ➔ [?]</b><br><br>Em hãy tính toán và gõ con số tiếp theo vào ô trống để bẻ khóa mở hộp.", answer: "32" },
+            
+            { id: 2, domain: "Số học & Logic", domainId: "logic", icon: "🔐", title: "Mã hóa dịch chuyển", type: "input", 
+              text: "Hệ thống bảo mật dịch chuyển mỗi chữ cái sang phải 1 bước trong bảng chữ cái (A thành B, B thành C...).<br><br>Theo quy luật này, từ khóa <b>GAME</b> sẽ biến thành chuỗi mật mã nào?", answer: "HBNF" },
+            
+            { id: 3, domain: "Ngôn ngữ & Thấu cảm", domainId: "verbal", icon: "🕵️", title: "Mật thư toàn cầu", type: "input", 
+              text: "Read the clue and guess the secret word:<br><br><i>'I have four legs. I live in your house. I bark when a stranger comes. What am I?'</i><br><br>Gõ từ khóa tiếng Anh vào ô bên dưới:", answer: "DOG" },
+            
+            { id: 4, domain: "Ngôn ngữ & Thấu cảm", domainId: "verbal", icon: "🎭", title: "Thấu cảm hành vi", type: "dropdown_match", 
+              text: "Em hãy đọc hành vi của 3 bạn nhỏ và lựa chọn trạng thái cảm xúc chính xác nhất ở hộp bên cạnh:", 
+              matches: [
+                  { label: "Nam siết chặt tay, mím môi, im lặng cúi đầu.", options: ["Chọn cảm xúc...", "Vui mừng", "Buồn bã/Lo lắng", "Tức giận"], correct: "Buồn bã/Lo lắng" },
+                  { label: "Mai nhảy cẫng lên, nụ cười rạng rỡ, hò reo.", options: ["Chọn cảm xúc...", "Vui mừng", "Buồn bã/Lo lắng", "Tức giận"], correct: "Vui mừng" },
+                  { label: "Tuấn nhíu mày, mặt đỏ bừng, dậm mạnh chân.", options: ["Chọn cảm xúc...", "Vui mừng", "Buồn bã/Lo lắng", "Tức giận"], correct: "Tức giận" }
+              ]
+            },
+            
+            { id: 5, domain: "Thuật toán & Kỹ thuật", domainId: "tech", icon: "🤖", title: "Điều khiển Robot", type: "game_robot", 
+              text: "Hãy dùng nút mũi tên điều khiển Robot (🤖) né vật cản (🚧) để đi đến ăn thỏi pin (🔋) nhanh nhất có thể!" },
+            
+            { id: 6, domain: "Thuật toán & Kỹ thuật", domainId: "tech", icon: "🛠️", title: "Kỹ sư Smart-Home", type: "dropdown_match", 
+              text: "Dựa vào chức năng, em hãy chọn lắp đặt thiết bị cảm biến phù hợp cho 2 khu vực sau trong nhà thông minh:", 
+              matches: [
+                  { label: "Khu vực hành lang thiếu ánh sáng", options: ["Chọn thiết bị...", "Cảm biến độ ẩm", "Cảm biến ánh sáng"], correct: "Cảm biến ánh sáng" },
+                  { label: "Khu vực chậu cây có đất bị khô", options: ["Chọn thiết bị...", "Cảm biến độ ẩm", "Cảm biến ánh sáng"], correct: "Cảm biến độ ẩm" }
+              ]
+            },
+            
+            { id: 7, domain: "Hệ thống & Phản biện", domainId: "system", icon: "🌱", title: "Cân bằng sinh thái", type: "dropdown_match", 
+              text: "Quy luật sinh tồn: <b>Cỏ là thức ăn của châu chấu, còn châu chấu sẽ bị ếch ăn.</b><br><br>Nếu toàn bộ <b>Ếch</b> đột ngột bị bắt đi hết. Sự biến động nào sẽ xảy ra tiếp theo?", 
+              matches: [
+                  { label: "Số lượng Châu chấu sẽ:", options: ["Chọn...", "TĂNG LÊN", "GIẢM ĐI"], correct: "TĂNG LÊN" },
+                  { label: "Lượng Cỏ trong vườn sẽ:", options: ["Chọn...", "TĂNG LÊN", "GIẢM ĐI"], correct: "GIẢM ĐI" }
+              ]
+            },
+            
+            { id: 8, domain: "Hệ thống & Phản biện", domainId: "system", icon: "📜", title: "Đối chiếu nội quy", type: "input", 
+              text: "Nội quy phòng máy:<br>1. Không đem nước/đồ ăn vào.<br>2. Không tự ý đổi chuột/phím.<br>3. Không chia sẻ mật khẩu.<br><br>Tình huống: Bạn Minh làm đổ trà sữa lên bàn phím. Bạn đã vi phạm nội quy số mấy (Gõ số)?", answer: "1" },
+            
+            { id: 9, domain: "Không gian & Thẩm mỹ", domainId: "spatial", icon: "🧭", title: "Định vị La bàn", type: "buttons", 
+              text: "Lấy Sân trường làm vị trí trung tâm.<br><br>Nếu Phòng Tin học nằm ở khu vực <b>BÊN TRÁI</b> so với Sân trường, thì Phòng Tin học đang nằm ở hướng nào?", 
+              buttons: ["Hướng Bắc", "Hướng Nam", "Hướng Đông", "Hướng Tây"], correct: "Hướng Tây" },
+            
+            { id: 10, domain: "Không gian & Thẩm mỹ", domainId: "spatial", icon: "🎨", title: "Phối màu tương phản", type: "color_buttons", 
+              text: "Quy luật hội họa: Hai màu nằm <b>đối diện nhau</b> trên vòng tròn màu sắc là hai màu tương phản, giúp làm nổi bật nhau.<br><div style='position:relative; width: 140px; height: 140px; border-radius: 50%; margin: 15px auto; background: conic-gradient(#ef4444 0deg 60deg, #f97316 60deg 120deg, #eab308 120deg 180deg, #22c55e 180deg 240deg, #3b82f6 240deg 300deg, #a855f7 300deg 360deg); border: 4px solid #334155; box-shadow: 0 0 15px rgba(0,0,0,0.5);'><div style='position:absolute; top: 50px; left: 50px; width: 40px; height: 40px; background: #1e293b; border-radius: 50%;'></div></div>Dựa vào vòng tròn bên trên, em hãy nhấp chọn màu nền phù hợp nhất để làm nổi bật dòng chữ tiêu đề màu <b>VÀNG</b>:", 
+              buttons: [ { label: "Đỏ", class: "btn-color-red" }, { label: "Xanh lá", class: "btn-color-green" }, { label: "Tím", class: "btn-color-purple" } ], correct: "Tím" }
+        ];
+
+        // QUẢN LÝ TRẠNG THÁI (STATE)
+        let appState = {
+            name: "", school: "",
+            completed: 0,
+            robotTime: 0,
+            scores: { logic: 0, verbal: 0, tech: 0, system: 0, spatial: 0 },
+            status: {} // Lưu trạng thái đúng sai của từng câu id
+        };
+
+        let currentQuestionId = null;
+        let timerInterval = null;
+        let startTime = 0;
+
+        // KHỞI TẠO HỆ THỐNG
+        function initApp() {
+            const n = document.getElementById("hs-name").value.trim();
+            const s = document.getElementById("hs-school").value.trim();
+            if (!n) { alert("Mật vụ vui lòng nhập tên!"); return; }
+            
+            appState.name = n.toUpperCase();
+            appState.school = s;
+            document.getElementById("student-info").innerText = `Mật vụ: ${appState.name} | Nguồn: ${appState.school || "Ẩn danh"}`;
+            document.getElementById("welcome-modal").style.display = "none";
+            
+            renderGrid();
+        }
+
+        // RENDER LƯỚI TRẠM KHÁM PHÁ
+        function renderGrid() {
+            const grid = document.getElementById("station-grid");
+            grid.innerHTML = "";
+            database.forEach(q => {
+                const isDone = appState.status[q.id] !== undefined;
+                grid.innerHTML += `
+                    <div class="station-card ${isDone ? 'completed' : ''}" id="card-${q.id}" onclick="openQuiz(${q.id})">
+                        <div class="station-icon">${q.icon}</div>
+                        <div class="station-title">${q.title}</div>
+                        <div class="station-domain">${q.domain}</div>
+                    </div>
+                `;
+            });
+        }
+
+        // MỞ POP-UP CÂU HỎI
+        function openQuiz(id) {
+            currentQuestionId = id;
+            const q = database.find(x => x.id === id);
+            document.getElementById("q-title").innerText = `${q.icon} ${q.title}`;
+            document.getElementById("q-text").innerHTML = q.text;
+            document.getElementById("q-feedback").innerText = "";
+            
+            const area = document.getElementById("q-interaction-area");
+            area.innerHTML = "";
+
+            const isDone = appState.status[id] !== undefined;
+
+            if (q.type === "input") {
+                area.innerHTML = `<input type="text" id="ans-input" placeholder="Gõ đáp án vào đây..." ${isDone ? 'disabled' : ''}>
+                                  ${!isDone ? `<button class="btn-submit" onclick="checkInput('${q.answer}', '${q.domainId}')">Nộp Bài</button>` : ''}`;
+            } 
+            else if (q.type === "dropdown_match") {
+                let html = "";
+                q.matches.forEach((m, idx) => {
+                    html += `<div class="dropdown-group"><span>${m.label}</span>
+                             <select id="drop-${idx}" ${isDone ? 'disabled' : ''}>
+                             ${m.options.map(o => `<option value="${o}">${o}</option>`).join('')}
+                             </select></div>`;
+                });
+                if (!isDone) html += `<button class="btn-submit" style="margin-top:10px" onclick="checkDropdowns()">Nộp Xác Nhận</button>`;
+                area.innerHTML = html;
+            }
+            else if (q.type === "buttons") {
+                let html = `<div class="btn-grid">`;
+                q.buttons.forEach(b => { html += `<button class="btn-choice" ${isDone ? 'disabled' : ''} onclick="checkButton('${b}', '${q.correct}', '${q.domainId}')">${b}</button>`; });
+                html += `</div>`;
+                area.innerHTML = html;
+            }
+            else if (q.type === "color_buttons") {
+                let html = `<div class="btn-grid">`;
+                q.buttons.forEach(b => { html += `<button class="btn-choice ${b.class}" ${isDone ? 'disabled' : ''} onclick="checkColor('${b.label}', '${q.correct}', '${q.domainId}')">${b.label}</button>`; });
+                html += `</div>`;
+                area.innerHTML = html;
+            }
+            else if (q.type === "game_robot") {
+                if(isDone) {
+                    area.innerHTML = `<p style="color:#4ade80; text-align:center; font-weight:bold;">Đã hoàn thành! Thời gian: ${appState.robotTime} giây.</p>`;
+                } else {
+                    initRobotGame(area);
+                }
+            }
+
+            if(isDone) {
+                document.getElementById("q-feedback").innerText = appState.status[id] ? "✅ Đã vượt qua thành công!" : "❌ Chưa chính xác!";
+                document.getElementById("q-feedback").style.color = appState.status[id] ? "#4ade80" : "#ef4444";
+            }
+
+            document.getElementById("quiz-modal").style.display = "flex";
+        }
+
+        // HÀM CHẤM ĐIỂM CƠ BẢN
+        function processResult(isCorrect, domainId) {
+            appState.status[currentQuestionId] = isCorrect;
+            if (isCorrect) appState.scores[domainId] += 1;
+            
+            appState.completed += 1;
+            document.getElementById("prog-text").innerText = `${appState.completed}/10 Trạm`;
+            document.getElementById("prog-bar").style.width = `${(appState.completed / 10) * 100}%`;
+            
+            document.getElementById(`card-${currentQuestionId}`).classList.add("completed");
+            
+            const fb = document.getElementById("q-feedback");
+            fb.innerText = isCorrect ? "🎉 Mật mã mở khóa thành công!" : "❌ Phân tích sai lệch. Hệ thống đã ghi nhận.";
+            fb.style.color = isCorrect ? "#4ade80" : "#ef4444";
+            
+            // Xóa nút hoặc disable input
+            const btn = document.querySelector("#q-interaction-area .btn-submit");
+            if(btn) btn.style.display = "none";
+            document.querySelectorAll("input, select, .btn-choice").forEach(e => e.disabled = true);
+
+            if (appState.completed === 10) document.getElementById("btn-finish").style.display = "block";
+        }
+
+        function checkInput(correctAns, domainId) {
+            const val = document.getElementById("ans-input").value.toUpperCase().trim();
+            if (!val) return alert("Em chưa nhập dữ liệu!");
+            processResult(val === correctAns.toUpperCase(), domainId);
+        }
+
+        function checkDropdowns() {
+            const q = database.find(x => x.id === currentQuestionId);
+            let allCorrect = true;
+            let allSelected = true;
+            q.matches.forEach((m, idx) => {
+                const val = document.getElementById(`drop-${idx}`).value;
+                if (val.includes("Chọn")) allSelected = false;
+                if (val !== m.correct) allCorrect = false;
+            });
+            if (!allSelected) return alert("Vui lòng chọn đầy đủ các ô!");
+            processResult(allCorrect, q.domainId);
+        }
+
+        function checkButton(selected, correct, domainId) {
+            processResult(selected === correct, domainId);
+        }
+
+        function checkColor(selected, correct, domainId) {
+            document.getElementById("quiz-modal").style.backgroundColor = selected === "Tím" ? "rgba(168, 85, 247, 0.4)" : "rgba(239, 68, 68, 0.4)";
+            setTimeout(() => { document.getElementById("quiz-modal").style.backgroundColor = "transparent"; }, 1000);
+            processResult(selected === correct, domainId);
+        }
+
+        // LOGIC ROBOT MINI-GAME (THUẬT TOÁN)
+        let rx = 0, ry = 0;
+        const tx = 3, ty = 3;
+        const walls = ["1-1", "1-2", "2-2"]; // x-y
+        
+        function initRobotGame(area) {
+            rx = 0; ry = 0; startTime = Date.now();
+            let html = `<div class="game-board" id="board">`;
+            for(let y=0; y<4; y++){
+                for(let x=0; x<4; x++){
+                    let content = "";
+                    if (x===rx && y===ry) content = "🤖";
+                    else if (x===tx && y===ty) content = "🔋";
+                    else if (walls.includes(`${x}-${y}`)) content = "🚧";
+                    html += `<div class="cell" id="cell-${x}-${y}">${content}</div>`;
+                }
+            }
+            html += `</div><div class="controls">
+                     <button class="btn-dir" onclick="moveRobot(0,-1)">⬆️</button>
+                     <button class="btn-dir" onclick="moveRobot(0,1)">⬇️</button>
+                     <button class="btn-dir" onclick="moveRobot(-1,0)">⬅️</button>
+                     <button class="btn-dir" onclick="moveRobot(1,0)">➡️</button>
+                     </div><div id="game-timer" style="text-align:center; color:#38bdf8; font-weight:bold;">Thời gian: 0s</div>`;
+            area.innerHTML = html;
+            
+            timerInterval = setInterval(() => {
+                let sec = Math.floor((Date.now() - startTime)/1000);
+                let t = document.getElementById("game-timer");
+                if(t) t.innerText = `Thời gian: ${sec}s`;
+            }, 1000);
+        }
+
+        function moveRobot(dx, dy) {
+            let nx = rx + dx, ny = ry + dy;
+            if (nx < 0 || nx > 3 || ny < 0 || ny > 3 || walls.includes(`${nx}-${ny}`)) return; // Đụng tường hoặc biên
+            
+            document.getElementById(`cell-${rx}-${ry}`).innerText = "";
+            rx = nx; ry = ny;
+            document.getElementById(`cell-${rx}-${ry}`).innerText = "🤖";
+
+            if (rx === tx && ry === ty) {
+                clearInterval(timerInterval);
+                appState.robotTime = Math.floor((Date.now() - startTime)/1000);
+                document.getElementById("game-timer").innerText = `HOÀN THÀNH: ${appState.robotTime}s`;
+                document.querySelector(".controls").style.display = "none";
+                processResult(true, "tech");
+            }
+        }
+
+        // ĐÓNG MODAL
+        function closeModal(id) { 
+            document.getElementById(id).style.display = "none"; 
+            if(timerInterval) clearInterval(timerInterval);
+        }
+
+        // TỔNG KẾT VÀ PHÂN LOẠI LỚP
+        function showFinalResult() {
+            const sc = appState.scores;
+            let total = Object.values(sc).reduce((a, b) => a + b, 0);
+            
+            // Tự động phân bậc tốc độ robot
+            let robotRating = "";
+            if (appState.robotTime < 6) {
+                robotRating = "⭐ Thần tốc";
+            } else if (appState.robotTime <= 12) {
+                robotRating = "✨ Nhạy bén";
+            } else {
+                robotRating = "⏱️ Cẩn trọng";
+            }
+
+            // In điểm số
+            let html = `
+                • 🧮 Tư duy Số học & Logic: <b>${sc.logic}/2</b><br>
+                • 🗣️ Tư duy Ngôn ngữ & Thấu cảm: <b>${sc.verbal}/2</b><br>
+                • 💻 Tư duy Thuật toán & Kỹ thuật: <b>${sc.tech}/2</b> <span style="color:#fbbf24; font-size:18px;">(${robotRating}: ${appState.robotTime}s)</span><br>
+                • ⚙️ Tư duy Hệ thống & Phản biện: <b>${sc.system}/2</b><br>
+                • 🧭 Tư duy Không gian & Thẩm mỹ: <b>${sc.spatial}/2</b>
+            `;
+            document.getElementById("result-scores").innerHTML = html;
+
+            // --- LOGIC PHÂN LOẠI 3 MÔ HÌNH LỚP ---
+            // Mặc định: Phổ thông chuẩn
+            let suggestion = "MÔ HÌNH LỚP PHỔ THÔNG CHUẨN 📊";
+            let desc = "Con có tư duy cân bằng, ổn định. Đây là nền tảng vững chắc để học sinh tiếp cận kiến thức THCS một cách nhẹ nhàng, bài bản và phát triển bền vững.";
+
+            // Ưu tiên 1: Tích hợp
+            if (sc.logic === 2 && sc.verbal === 2 && total >= 8) {
+                suggestion = "MÔ HÌNH LỚP TÍCH HỢP (Quốc tế) 🌍";
+                desc = "Điểm tuyệt đối ở cả Số học và Ngôn ngữ. Con hoàn toàn đủ tố chất để theo học Toán và Khoa học bằng tiếng Anh 100% với giáo viên nước ngoài.";
+            } 
+            // Ưu tiên 2: STEM (Toán-Khoa)
+            else if (sc.logic === 2 && sc.tech >= 1 && sc.system >= 1 && total >= 7) {
+                suggestion = "MÔ HÌNH TĂNG CƯỜNG TOÁN - KHOA (STEM) 🔬";
+                desc = "Tư duy Thuật toán, Không gian và Logic cực kỳ bén. Con rất phù hợp để đào sâu vào các dự án Robotics, Công nghệ và giải quyết bài toán Khoa học phức tạp.";
+            }
+
+            document.getElementById("res-class").innerText = suggestion;
+            document.getElementById("res-desc").innerText = desc;
+            document.getElementById("result-modal").style.display = "flex";
+            
+            // Log dữ liệu
+            console.log("SYSTEM_LOG DATA: ", appState);
+
+            // --- ĐOẠN GỬI DATA VỀ GOOGLE SHEETS ---
+            const payload = {
+                ten: appState.name,
+                truong: appState.school,
+                diemLogic: sc.logic,
+                diemNgonNgu: sc.verbal,
+                diemThuatToan: sc.tech,
+                thoiGianRobot: appState.robotTime,
+                diemHeThong: sc.system,
+                diemKhongGian: sc.spatial,
+                ketQuaPhanLoai: suggestion
+            };
+
+            const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbxQOq61H0yqOtU5CHNTWn-JPc-RQUl5mQ6Ar3qlerbbRnigZpqDEnZ5Bmrq6U5CSr3d/exec"; 
+            
+            fetch(GOOGLE_API_URL, {
+                method: "POST",
+                body: JSON.stringify(payload)
+            })
+            .then(response => console.log("Đã bắn data về Căn cứ thành công!"))
+            .catch(error => console.error("Lỗi kết nối vệ tinh: ", error));
+        }
+    </script>
+</body>
+</html>
