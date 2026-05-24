@@ -129,9 +129,10 @@
             <h2 style="color: #38bdf8; font-size: 45px; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 2px;">🚀 SYSTEM_LOG INIT</h2>
             <p style="color: #94a3b8; margin-bottom: 30px; font-size: 20px; font-weight: bold;">HỆ THỐNG ĐÁNH GIÁ NĂNG LỰC - TRƯỜNG THCS NGUYỄN VĂN BÉ</p>
             
-            <div style="display: flex; gap: 20px; max-width: 800px; margin: 0 auto 30px auto;" id="input-profile-area">
-                <input type="text" id="hs-name" placeholder="Nhập Họ và Tên của em..." style="font-size: 20px; padding: 15px; margin-bottom: 0;">
-                <input type="text" id="hs-school" placeholder="Nhập tên Trường Tiểu học cũ..." style="font-size: 20px; padding: 15px; margin-bottom: 0;">
+            <div style="display: flex; gap: 15px; max-width: 950px; margin: 0 auto 30px auto;" id="input-profile-area">
+                <input type="text" id="hs-id-input" placeholder="Mã số / STT..." style="font-size: 20px; padding: 15px; margin-bottom: 0; flex: 1; text-align: center;">
+                <input type="text" id="hs-name" placeholder="Nhập Họ và Tên của em..." style="font-size: 20px; padding: 15px; margin-bottom: 0; flex: 2;">
+                <input type="text" id="hs-school" placeholder="Nhập tên Trường Tiểu học cũ..." style="font-size: 20px; padding: 15px; margin-bottom: 0; flex: 2;">
             </div>
 
             <hr style="border: none; border-top: 1px dashed #334155; margin: 30px 0;">
@@ -394,26 +395,28 @@
 
         // Hàm kiểm tra bảo mật, tính điểm sẵn sàng và kích hoạt bản đồ trạm
         function validateAndStart() {
+            const idVal = document.getElementById("hs-id-input").value.trim();
             const n = document.getElementById("hs-name").value.trim();
             const s = document.getElementById("hs-school").value.trim();
             
+            if (!idVal) { alert("Mật vụ vui lòng nhập Mã số hoặc STT được cấp!"); return; }
             if (!n) { alert("Mật vụ vui lòng nhập Họ và Tên!"); return; }
             if (!readAnswers[1] || !readAnswers[2] || !readAnswers[3]) {
                 alert("Em chưa hoàn thành hết 3 câu hỏi xác thực tâm thế chuyển cấp!");
                 return;
             }
 
-            // Tính toán Chỉ số Sẵn sàng Chuyển cấp (Đúng được bao nhiêu câu)
+            // Tính toán Chỉ số Sẵn sàng Chuyển cấp
             let readScore = 0;
             if (readAnswers[1] === 'B') readScore++;
             if (readAnswers[2] === 'C') readScore++;
             if (readAnswers[3] === 'B') readScore++;
 
-            // Nạp dữ liệu học sinh vào bộ nhớ tổng của hệ thống
+            // Nạp dữ liệu học sinh dựa trên Mã số thầy cô cấp
             appState.name = n.toUpperCase();
             appState.school = s;
-            appState.readScore = readScore; // Lưu số câu đúng để tí nữa bồ thích thì đổ ra phiếu in PDF
-            appState.systemId = `#NVB-${Math.floor(1000 + Math.random() * 9000)}`;
+            appState.readScore = readScore; 
+            appState.systemId = `#NVB-${idVal.toUpperCase()}`; // Lấy thẳng mã số nhập vào
 
             // Cập nhật thanh hiển thị thông tin góc trên màn hình máy tính
             document.getElementById("student-info").innerText = `Mật vụ: ${appState.name} | ID: ${appState.systemId} | Nguồn: ${appState.school || "Phụ huynh tự do"}`;
@@ -633,6 +636,7 @@
         }
 
         // TỔNG KẾT, PHÂN LOẠI 3 LỚP VÀ ĐỔ DỮ LIỆU IN ẤN
+        // TỔNG KẾT, PHÂN LOẠI 3 LỚP VÀ ĐỔ DỮ LIỆU IN ẤN
         function showFinalResult() {
             const sc = appState.scores;
             let total = Object.values(sc).reduce((a, b) => a + b, 0);
@@ -656,7 +660,6 @@
                 • 🧭 Tư duy Không gian & Thẩm mỹ: <b>${sc.spatial}/2</b>
             `;
             document.getElementById("result-scores").innerHTML = html;
-
 
             // THUẬT TOÁN PHÂN LOẠI CHUẨN 3 MÔ HÌNH LỚP TRƯỜNG CẦN
             let suggestion = "MÔ HÌNH LỚP PHỔ THÔNG CHUẨN 📊";
@@ -684,23 +687,19 @@
             let systemComment = sc.system === 2 ? "Tư duy hệ thống sắc sảo, hiểu rõ quy luật nhân quả và đối chiếu nội quy chính xác." : "Nhận diện được biến động chuỗi hệ sinh thái tự nhiên ở mức cơ bản.";
             let spatialComment = sc.spatial === 2 ? "Tư duy không gian tốt, định vị la bàn hướng phẳng và cảm quan màu sắc tương phản sắc nét." : "Năng lực định vị hướng cơ bản và cảm quan phối màu mỹ thuật thông thường.";
 
-            // Tạo mã ID hồ sơ tự động cho học sinh
-            if (!appState.systemId) {
-                appState.systemId = `#NVB-${Math.floor(1000 + Math.random() * 9000)}`;
-                document.getElementById("student-info").innerText = `Mật vụ: ${appState.name} | ID: ${appState.systemId} | Nguồn: ${appState.school || "Phụ huynh tự do"}`;
-            }
-
+            // Cập nhật thông tin lên biểu mẫu in phiếu
             document.getElementById("p-name").innerText = appState.name;
             document.getElementById("p-school").innerText = appState.school || "Phụ huynh đăng ký tự do";
             document.getElementById("p-id").innerText = appState.systemId;
+            
             // ĐỔ CHỈ SỐ TÂM THẾ CHUYỂN CẤP RA PHIẾU IN PDF
             const readStatusEl = document.getElementById("p-read-status");
             if (appState.readScore === 3) {
                 readStatusEl.innerText = "TỰ TIN & CHỦ ĐỘNG CAO 🌟";
-                readStatusEl.style.color = "#16a34a"; // Đổi màu xanh lá cây đậm chuyên nghiệp cho hệ đúng hết
+                readStatusEl.style.color = "#16a34a";
             } else {
                 readStatusEl.innerText = "CẦN THỜI GIAN THÍCH ỨNG ⏱️";
-                readStatusEl.style.color = "#b45309"; // Đổi màu nâu hổ phách quý phái cho hệ sai vài câu
+                readStatusEl.style.color = "#b45309";
             }
 			
             const today = new Date();
